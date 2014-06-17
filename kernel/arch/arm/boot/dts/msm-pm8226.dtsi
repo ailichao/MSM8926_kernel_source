@@ -200,9 +200,9 @@
 			qcom,batt-type = <3>;
 			qcom,tm-temp-margin = <5000>;
 			qcom,low-ocv-correction-limit-uv = <100>;
-			qcom,high-ocv-correction-limit-uv = <250>;
-			qcom,hold-soc-est = <3>;
-			qcom,low-voltage-threshold = <3420000>;
+			qcom,high-ocv-correction-limit-uv = <50>;
+			qcom,hold-soc-est = <1>;
+			qcom,low-voltage-threshold = <3200000>;
 			qcom,bms-vadc = <&pm8226_vadc>;
 			qcom,bms-iadc = <&pm8226_iadc>;
 			qcom,bms-adc_tm = <&pm8226_adc_tm>;

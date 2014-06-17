@@ -89,9 +89,6 @@ void __weak panic_smp_self_stop(void)
 		cpu_relax();
 }
 
-//quiet reboot
-extern void set_quiet_reboot_flag(void);
-
 /**
  *	panic - halt the system
  *	@fmt: The text string to print
@@ -121,9 +118,6 @@ void panic(const char *fmt, ...)
 #else
 	__raw_writel(CONFIG_WARMBOOT_NORMAL, restart_reason);
 	*backupcrashflag = CONFIG_WARMBOOT_CRASH;
-
-	//quiet reboot
-	set_quiet_reboot_flag();
 #endif	
 	abnormalflag = ABNORAML_CRASH;
 	mb();

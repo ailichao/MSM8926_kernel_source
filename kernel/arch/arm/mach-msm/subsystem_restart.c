@@ -172,7 +172,7 @@ struct subsys_device {
 };
 
 //S [VY52/VY55][bug_486] frank_chan add
-char work_buf[72];
+char work_buf[63];
 //E [VY52/VY55][bug_486] frank_chan add
 
 static struct subsys_device *to_subsys(struct device *d)
@@ -769,7 +769,6 @@ int subsystem_restart_dev(struct subsys_device *dev)
 		name, restart_levels[dev->restart_level]);
 
 //S [VY52/VY55][bug_486] frank_chan add
-	memset(work_buf, 0, 72);
 	sprintf(work_buf, "Restart sequence requested for %s, restart_level = %s.\n",name, restart_levels[dev->restart_level]);
 //E [VY52/VY55][bug_486] frank_chan add
 

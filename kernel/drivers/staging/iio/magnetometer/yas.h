@@ -431,8 +431,6 @@ struct yas_acc_driver {
 	 * @retval Negative Failure
 	 */
 	int (*set_position)(int position);
-	/**[CCI]Add Kionix Self-Test function*/
-	int (*self_test)(void);	
 	/**
 	 * Measures the sensor
 	 * @param[out] raw Measured sensor data

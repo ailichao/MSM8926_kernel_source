@@ -240,7 +240,6 @@
 		qcom,hsusb-otg-disable-reset;
 		qcom,dp-manual-pullup;
 		qcom,ahb-async-bridge-bypass;
-		qcom,disable-retention-with-vdd-min;
 
 		qcom,msm-bus,name = "usb2";
 		qcom,msm-bus,num-cases = <2>;
@@ -256,24 +255,6 @@
 		reg = <0xfe8050c8 0xc8>;
 		qcom,android-usb-swfi-latency = <1>;
 		qcom,streaming-func = "rndis";
-	};
-
-	rmtfs_sharedmem {
-		compatible = "qcom,sharedmem-uio";
-		reg = <0x0dc80000 0x00180000>;
-		reg-names = "rmtfs";
-	};
-
-	dsp_sharedmem {
-		compatible = "qcom,sharedmem-uio";
-		reg = <0x0dc60000 0x00020000>;
-		reg-names = "rfsa_dsp";
-	};
-
-	mdm_sharedmem {
-		compatible = "qcom,sharedmem-uio";
-		reg = <0x0dc60000 0x00020000>;
-		reg-names = "rfsa_mdm";
 	};
 
 	sdcc1: qcom,sdcc@f9824000 {
@@ -443,6 +424,7 @@
 		compatible = "qcom,rpm-smd";
 		rpm-channel-name = "rpm_requests";
 		rpm-channel-type = <15>; /* SMD_APPS_RPM */
+		rpm-standalone;
 	};
 
 	qcom,bcl {
@@ -528,21 +510,6 @@
 		qcom,sda-gpio = <&msmgpio 16 0>;
 		qcom,scl-gpio = <&msmgpio 17 0>;
                 qcom,master-id = <86>;
-	};
-
-
-	i2c@f9924000 { /* BLSP-1 QUP-3 */
-		cell-index = <2>;
-		compatible = "qcom,i2c-qup";
-		reg-names = "qup_phys_addr";
-		reg = <0xf9924000 0x1000>;
-		interrupt-names = "qup_err_intr";
-		interrupts = <0 96 0>;
-		qcom,i2c-bus-freq = <100000>;
-		qcom,i2c-src-freq = <19200000>;
-		qcom,sda-gpio = <&msmgpio 8 0>;
-		qcom,scl-gpio = <&msmgpio 9 0>;
-		qcom,master-id = <86>;
 	};
 
 	i2c@f9925000 { /* BLSP-1 QUP-3 */
@@ -888,8 +855,8 @@
                 qcom,msm-bus,num-cases = <2>;
                 qcom,msm-bus,num-paths = <1>;
                 qcom,msm-bus,vectors-KBps =
-                                <54 618 0 0>,
-                                <54 618 0 800>;
+                                <1 618 0 0>,
+                                <1 618 0 800>;
         };
 
 	qcom,msm-rtb {

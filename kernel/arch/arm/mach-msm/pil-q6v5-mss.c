@@ -107,11 +107,10 @@ static const u_int16_t days_since_epoch[] = {
 	3287, 2922, 2557, 2191, 1826, 1461, 1096, 730, 365, 0,
 };
 
-#define CRASH_INFO_SIZE 128
 char crash_reason1[]= "Fatal error on the modem\n";
-char crash_reason2[CRASH_INFO_SIZE]={0};	//47
+char crash_reason2[]="";	//47
 char mss_fail_str[]= "modem subsystem failure reason: ";
-extern char work_buf[72];
+extern char work_buf[63];
 struct subsys_timestamp mss_t;
 
 #ifdef CONFIG_CCI_PRINTK_TIME_ISO_8601
@@ -141,18 +140,7 @@ static void log_modem_sfr(void)
 	pr_err("modem subsystem failure reason: %s.\n", reason);
 
 //S [VY52/VY55][bug_486] Frank_Chan add
-	{
-		unsigned int nStringSize = 0;
-
-		nStringSize = strlen(mss_fail_str)+min(size, sizeof(reason));
-		
-		if (nStringSize > CRASH_INFO_SIZE) {
-			nStringSize = CRASH_INFO_SIZE;
-		}
-
-		memset(crash_reason2, 0, CRASH_INFO_SIZE);
-		snprintf(crash_reason2, nStringSize, "%s%s", mss_fail_str, reason );
-	}
+	snprintf(crash_reason2, strlen(mss_fail_str)+min(size, sizeof(reason)), "%s%s", mss_fail_str, reason );
 //E [VY52/VY55][bug_486] Frank_Chan add
 
 	smem_reason[0] = '\0';

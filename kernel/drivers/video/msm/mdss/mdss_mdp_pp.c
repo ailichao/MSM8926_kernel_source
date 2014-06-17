@@ -629,7 +629,7 @@ static int pp_vig_pipe_setup(struct mdss_mdp_pipe *pipe, u32 *op)
 		}
 	}
 
-	*op |= opmode;
+	*op = opmode;
 
 	return 0;
 }
@@ -637,15 +637,12 @@ static int pp_vig_pipe_setup(struct mdss_mdp_pipe *pipe, u32 *op)
 static int mdss_mdp_scale_setup(struct mdss_mdp_pipe *pipe)
 {
 	u32 scale_config = 0;
-	int init_phasex = 0, init_phasey = 0;
-	int phasex_step = 0, phasey_step = 0;
+	u32 phasex_step = 0, phasey_step = 0;
 	u32 chroma_sample;
 	u32 filter_mode;
 	struct mdss_data_type *mdata;
 	u32 src_w, src_h;
 
-	pr_debug("pipe=%d, change pxl ext=%d\n", pipe->num,
-			pipe->scale.enable_pxl_ext);
 	mdata = mdss_mdp_get_mdata();
 	if (mdata->mdp_rev >= MDSS_MDP_HW_REV_102 && pipe->src_fmt->is_yuv)
 		filter_mode = MDSS_MDP_SCALE_FILTER_CA;
@@ -692,8 +689,7 @@ static int mdss_mdp_scale_setup(struct mdss_mdp_pipe *pipe)
 	if ((src_h != pipe->dst.h) ||
 	    (pipe->pp_res.pp_sts.sharp_sts & PP_STS_ENABLE) ||
 	    (chroma_sample == MDSS_MDP_CHROMA_420) ||
-	    (chroma_sample == MDSS_MDP_CHROMA_H1V2) ||
-	    pipe->scale.enable_pxl_ext) {
+	    (chroma_sample == MDSS_MDP_CHROMA_H1V2)) {
 		pr_debug("scale y - src_h=%d dst_h=%d\n", src_h, pipe->dst.h);
 
 		if ((src_h / MAX_DOWNSCALE_RATIO) > pipe->dst.h) {
@@ -703,8 +699,7 @@ static int mdss_mdp_scale_setup(struct mdss_mdp_pipe *pipe)
 		}
 
 		scale_config |= MDSS_MDP_SCALEY_EN;
-		phasey_step = pipe->scale.phase_step_y[0];
-		init_phasey = pipe->scale.init_phase_y[0];
+		phasey_step = pipe->phase_step_y;
 
 		if (pipe->type == MDSS_MDP_PIPE_TYPE_VIG) {
 			u32 chroma_shift = 0;
@@ -713,11 +708,11 @@ static int mdss_mdp_scale_setup(struct mdss_mdp_pipe *pipe)
 			    (chroma_sample == MDSS_MDP_CHROMA_H1V2)))
 				chroma_shift = 1; /* 2x upsample chroma */
 
-			if (src_h <= pipe->dst.h)
+			if (src_h <= pipe->dst.h) {
 				scale_config |= /* G/Y, A */
 					(filter_mode << 10) |
 					(MDSS_MDP_SCALE_FILTER_BIL << 18);
-			else
+			} else
 				scale_config |= /* G/Y, A */
 					(MDSS_MDP_SCALE_FILTER_PCMN << 10) |
 					(MDSS_MDP_SCALE_FILTER_PCMN << 18);
@@ -729,8 +724,6 @@ static int mdss_mdp_scale_setup(struct mdss_mdp_pipe *pipe)
 				scale_config |= /* CrCb */
 					(MDSS_MDP_SCALE_FILTER_PCMN << 14);
 
-			writel_relaxed(init_phasey, pipe->base +
-				MDSS_MDP_REG_VIG_QSEED2_C12_INIT_PHASEY);
 			writel_relaxed(phasey_step >> chroma_shift, pipe->base +
 				MDSS_MDP_REG_VIG_QSEED2_C12_PHASESTEPY);
 		} else {
@@ -748,8 +741,7 @@ static int mdss_mdp_scale_setup(struct mdss_mdp_pipe *pipe)
 	if ((src_w != pipe->dst.w) ||
 	    (pipe->pp_res.pp_sts.sharp_sts & PP_STS_ENABLE) ||
 	    (chroma_sample == MDSS_MDP_CHROMA_420) ||
-	    (chroma_sample == MDSS_MDP_CHROMA_H2V1) ||
-	    pipe->scale.enable_pxl_ext) {
+	    (chroma_sample == MDSS_MDP_CHROMA_H2V1)) {
 		pr_debug("scale x - src_w=%d dst_w=%d\n", src_w, pipe->dst.w);
 
 		if ((src_w / MAX_DOWNSCALE_RATIO) > pipe->dst.w) {
@@ -759,8 +751,7 @@ static int mdss_mdp_scale_setup(struct mdss_mdp_pipe *pipe)
 		}
 
 		scale_config |= MDSS_MDP_SCALEX_EN;
-		init_phasex = pipe->scale.init_phase_x[0];
-		phasex_step = pipe->scale.phase_step_x[0];
+		phasex_step = pipe->phase_step_x;
 
 		if (pipe->type == MDSS_MDP_PIPE_TYPE_VIG) {
 			u32 chroma_shift = 0;
@@ -770,11 +761,11 @@ static int mdss_mdp_scale_setup(struct mdss_mdp_pipe *pipe)
 			    (chroma_sample == MDSS_MDP_CHROMA_H2V1)))
 				chroma_shift = 1; /* 2x upsample chroma */
 
-			if (src_w <= pipe->dst.w)
+			if (src_w <= pipe->dst.w) {
 				scale_config |= /* G/Y, A */
 					(filter_mode << 8) |
 					(MDSS_MDP_SCALE_FILTER_BIL << 16);
-			else
+			} else
 				scale_config |= /* G/Y, A */
 					(MDSS_MDP_SCALE_FILTER_PCMN << 8) |
 					(MDSS_MDP_SCALE_FILTER_PCMN << 16);
@@ -786,8 +777,6 @@ static int mdss_mdp_scale_setup(struct mdss_mdp_pipe *pipe)
 				scale_config |= /* CrCb */
 					(MDSS_MDP_SCALE_FILTER_PCMN << 12);
 
-			writel_relaxed(init_phasex, pipe->base +
-				MDSS_MDP_REG_VIG_QSEED2_C12_INIT_PHASEX);
 			writel_relaxed(phasex_step >> chroma_shift, pipe->base +
 				MDSS_MDP_REG_VIG_QSEED2_C12_PHASESTEPX);
 		} else {
@@ -802,49 +791,12 @@ static int mdss_mdp_scale_setup(struct mdss_mdp_pipe *pipe)
 		}
 	}
 
-	if (pipe->scale.enable_pxl_ext &&
-		pipe->type == MDSS_MDP_PIPE_TYPE_VIG) {
-
-		/*program x,y initial phase and phase step*/
-		writel_relaxed(pipe->scale.init_phase_x[0],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C03_INIT_PHASEX);
-		writel_relaxed(pipe->scale.phase_step_x[0],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C03_PHASESTEPX);
-		writel_relaxed(pipe->scale.init_phase_x[1],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C12_INIT_PHASEX);
-		writel_relaxed(pipe->scale.phase_step_x[1],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C12_PHASESTEPX);
-
-		writel_relaxed(pipe->scale.init_phase_y[0],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C03_INIT_PHASEY);
-		writel_relaxed(pipe->scale.phase_step_y[0],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C03_PHASESTEPY);
-		writel_relaxed(pipe->scale.init_phase_y[1],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C12_INIT_PHASEY);
-		writel_relaxed(pipe->scale.phase_step_y[1],
-			pipe->base + MDSS_MDP_REG_VIG_QSEED2_C12_PHASESTEPY);
-
-		/*program pixel extn values for the SSPP*/
-		mdss_mdp_pipe_program_pixel_extn(pipe);
-	} else if (pipe->type == MDSS_MDP_PIPE_TYPE_VIG) {
-		writel_relaxed(phasex_step, pipe->base +
-		   MDSS_MDP_REG_SCALE_PHASE_STEP_X);
-		writel_relaxed(phasey_step, pipe->base +
-		   MDSS_MDP_REG_SCALE_PHASE_STEP_Y);
-		writel_relaxed(init_phasex, pipe->base +
-			MDSS_MDP_REG_SCALE_INIT_PHASE_X);
-		writel_relaxed(init_phasey, pipe->base +
-			MDSS_MDP_REG_SCALE_INIT_PHASE_Y);
-	} else {
-		writel_relaxed(phasex_step, pipe->base +
-		   MDSS_MDP_REG_SCALE_PHASE_STEP_X);
-		writel_relaxed(phasey_step, pipe->base +
-		   MDSS_MDP_REG_SCALE_PHASE_STEP_Y);
-	}
-
 	writel_relaxed(scale_config, pipe->base +
 	   MDSS_MDP_REG_SCALE_CONFIG);
-
+	writel_relaxed(phasex_step, pipe->base +
+	   MDSS_MDP_REG_SCALE_PHASE_STEP_X);
+	writel_relaxed(phasey_step, pipe->base +
+	   MDSS_MDP_REG_SCALE_PHASE_STEP_Y);
 	return 0;
 }
 
@@ -1351,13 +1303,11 @@ int mdss_mdp_pp_init(struct device *dev)
 		if (mdss_pp_res == NULL) {
 			pr_err("%s mdss_pp_res allocation failed!", __func__);
 			ret = -ENOMEM;
-		} else {
-			for (i = 0; i < MDSS_MDP_MAX_DSPP; i++) {
-				mutex_init(
-					&mdss_pp_res->dspp_hist[i].hist_mutex);
-				spin_lock_init(
-					&mdss_pp_res->dspp_hist[i].hist_lock);
-			}
+		}
+
+		for (i = 0; i < MDSS_MDP_MAX_DSPP; i++) {
+			mutex_init(&mdss_pp_res->dspp_hist[i].hist_mutex);
+			spin_lock_init(&mdss_pp_res->dspp_hist[i].hist_lock);
 		}
 	}
 	if (mdata) {
@@ -2298,7 +2248,6 @@ exit:
 	return ret;
 }
 
-#define MDSS_MAX_HIST_BIN_SIZE 16777215
 int mdss_mdp_histogram_start(struct mdp_histogram_start_req *req)
 {
 	u32 done_shift_bit;
@@ -2307,12 +2256,8 @@ int mdss_mdp_histogram_start(struct mdp_histogram_start_req *req)
 	int i, ret = 0;
 	u32 disp_num, dspp_num = 0;
 	u32 mixer_cnt, mixer_id[MDSS_MDP_INTF_MAX_LAYERMIXER];
-	u32 frame_size;
 	struct mdss_mdp_pipe *pipe;
 	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
-
-	if (!mdss_is_ready())
-		return -EPROBE_DEFER;
 
 	if ((PP_BLOCK(req->block) < MDP_LOGICAL_BLOCK_DISP_0) ||
 		(PP_BLOCK(req->block) >= MDP_BLOCK_MAX))
@@ -2331,16 +2276,6 @@ int mdss_mdp_histogram_start(struct mdp_histogram_start_req *req)
 		pr_err("%s, Too many dspp connects to disp %d",
 			__func__, mixer_cnt);
 		ret = -EPERM;
-		goto hist_exit;
-	}
-
-	frame_size = (mdata->ctl_off[mixer_id[0]].width *
-					mdata->ctl_off[mixer_id[0]].height);
-	if (!frame_size ||
-		((MDSS_MAX_HIST_BIN_SIZE / frame_size) < req->frame_cnt)) {
-		pr_err("%s, too many frames for given display size, %d",
-						__func__, req->frame_cnt);
-		ret = -EINVAL;
 		goto hist_exit;
 	}
 	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
@@ -3009,11 +2944,6 @@ int mdss_mdp_ad_input(struct msm_fb_data_type *mfd,
 			ret = -EINVAL;
 			goto error;
 		}
-		if (input->in.amb_light > MDSS_MDP_MAX_AD_AL) {
-			pr_warn("invalid input ambient light");
-			ret = -EINVAL;
-			goto error;
-		}
 		ad->ad_data_mode = MDSS_AD_INPUT_AMBIENT;
 		pr_debug("ambient = %d", input->in.amb_light);
 		ad->ad_data = input->in.amb_light;
@@ -3025,11 +2955,6 @@ int mdss_mdp_ad_input(struct msm_fb_data_type *mfd,
 	case MDSS_AD_MODE_MAN_STR:
 		if (!MDSS_AD_MODE_DATA_MATCH(ad->cfg.mode,
 				MDSS_AD_INPUT_STRENGTH)) {
-			ret = -EINVAL;
-			goto error;
-		}
-		if (input->in.strength > MDSS_MDP_MAX_AD_STR) {
-			pr_warn("invalid input strength");
 			ret = -EINVAL;
 			goto error;
 		}
@@ -3595,8 +3520,8 @@ int mdss_mdp_calib_config_buffer(struct mdp_calib_config_buffer *cfg,
 		return ret;
 	}
 
-	if (cfg->size == 0 || cfg->size > PAGE_SIZE) {
-		pr_err("Invalid buffer size %d", cfg->size);
+	if (cfg->size == 0) {
+		pr_err("Invalid buffer size");
 		return ret;
 	}
 

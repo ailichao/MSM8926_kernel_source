@@ -375,32 +375,26 @@ static struct wake_lock force_ramdump_wake_lock;
 static void
 qpnp_pon_force_ramdump_timer(unsigned long unused)
 {
-	int rc, del_rc;
+	int rc;
 	u8 pon_rt_sts = 0;
 	
+	hwkey_timer_check ++;
+	pr_info("%s():hwkey_timer_check %d\n", __func__, hwkey_timer_check);
+		
 	rc = spmi_ext_register_readl(pon_ptr->spmi->ctrl, pon_ptr->spmi->sid,
 			QPNP_PON_RT_STS(pon_ptr->base), &pon_rt_sts, 1);
-	if (rc) {
-		//SPMI read fail 
-		pr_info("%s(): Unable to read PON RT status\n", __func__);
-		hwkey_timer_check = 0;
-	} else {
-		//release power key
-		if (!pon_rt_sts & QPNP_PON_KPDPWR_N_SET) { 
-			del_rc = del_timer(&hwkey_timer);
+		
+	if (!pon_rt_sts & QPNP_PON_KPDPWR_N_SET) {
+			del_timer(&hwkey_timer);
 			hwkey_timer_check = 0;
-			pr_info("%s():release power key, hwkey_timer_check=%d, del_rc=%d\n", __func__, hwkey_timer_check, del_rc);
-		//keep pressing power key
-		} else {
-			hwkey_timer_check ++;
-			pr_info("%s():keep pressing power key, hwkey_timer_check=%d\n", __func__, hwkey_timer_check);
-			if(hwkey_timer_check == CCI_FORCE_RAMDUMP_CHECK_NUM) {
-				pr_info("%s: long press pwkey to  force panic!!!\n",__func__);
-				panic("kernel panic cause by long press pwkey!!!");
-			}
-			mod_timer(&hwkey_timer, jiffies + msecs_to_jiffies(CCI_FORCE_RAMDUMP_TIMEOUT));
-		}
+			pr_info("%s():hwkey_timer_check %d\n", __func__, hwkey_timer_check);
 	}
+
+	if(hwkey_timer_check == CCI_FORCE_RAMDUMP_CHECK_NUM) {
+		pr_info("%s: long press pwkey to  force panic!!!\n",__func__);
+		panic("kernel panic cause by long press pwkey!!!");
+	}
+	mod_timer(&hwkey_timer, jiffies + msecs_to_jiffies(CCI_FORCE_RAMDUMP_TIMEOUT));
 }
 static void
 qpnp_pon_force_ramdump_timer_start(void)
@@ -411,15 +405,14 @@ qpnp_pon_force_ramdump_timer_start(void)
 static void
 qpnp_pon_force_ramdump(u8 pon_rt_val)
 {
-	int del_rc;
-	//release power key 
+	 
 	if (!pon_rt_val) {
-		del_rc = del_timer(&hwkey_timer);
+		del_timer(&hwkey_timer);
 		hwkey_timer_check = 0; 
-		pr_info("%s():release power key, hwkey_timer_check=%d, del_rc =%d\n", __func__,  hwkey_timer_check, del_rc);
+		pr_info("%s():hwkey_timer_check %d\n", __func__,  hwkey_timer_check);
 		if(wake_lock_active(&force_ramdump_wake_lock))
 			wake_unlock(&force_ramdump_wake_lock);
-	} else {//press power key 
+	} else {
 		qpnp_pon_force_ramdump_timer_start();
 	}
 }
@@ -1105,9 +1098,6 @@ free_input_dev:
 	return rc;
 }
 
-//quiet reboot
-extern void set_quiet_reboot_flag(void);
-
 static int __devinit qpnp_pon_probe(struct spmi_device *spmi)
 {
 	struct qpnp_pon *pon;
@@ -1163,8 +1153,6 @@ static int __devinit qpnp_pon_probe(struct spmi_device *spmi)
 		dev_err(&pon->spmi->dev, "Unable to read PON_RESASON1 reg\n");
 		return rc;
 	}
-
-	boot_reason = ffs(pon_sts);
 	index = ffs(pon_sts);
 	if ((index > PON_REASON_MAX) || (index < 0))
 		index = 0;
@@ -1173,13 +1161,6 @@ static int __devinit qpnp_pon_probe(struct spmi_device *spmi)
 	pr_info("PMIC@SID%d Power-on reason: %s and '%s' boot\n",
 		pon->spmi->sid, index ? qpnp_pon_reason[index - 1] :
 		"Unknown", cold_boot ? "cold" : "warm");
-
-	//quiet reboot
-	if( index - 1 == 1 ) //"Triggered from SMPL (sudden momentary power loss)"
-	{
-		set_quiet_reboot_flag();
-	}
-	//quiet reboot
 
 	rc = of_property_read_u32(pon->spmi->dev.of_node,
 				"qcom,pon-dbc-delay", &delay);

@@ -146,11 +146,10 @@ struct timespec tm_current_kernel_time(struct rtc_time * tm);
 
 struct subsys_timestamp pronto_t;
 
-#define CRASH_INFO_SIZE 128
 char pronto_crash_reason1[]= "Fatal error on the wcnss\n";
-char pronto_crash_reason2[CRASH_INFO_SIZE]={0};
+char pronto_crash_reason2[47];
 char pronto_fail_str[]= "wcnss subsystem failure reason: ";
-extern char work_buf[72];
+extern char work_buf[63];
 //E [VY52/VY55][bug_486] Frank_Chan add for when modem/WCNSS subsystem restart, failure reason shall be stored at internel sd
 
 static int pil_pronto_make_proxy_vote(struct pil_desc *pil)
@@ -361,17 +360,7 @@ static void log_wcnss_sfr(void)
 				smem_reset_reason);
 
 //S [VY52/VY55][bug_486] Frank_Chan add
-	{
-		unsigned int nStringSize = 0;
-
-		nStringSize = strlen(pronto_fail_str)+min(smem_reset_size, sizeof(pronto_crash_reason2));
-		
-		if (nStringSize > CRASH_INFO_SIZE) {
-			nStringSize = CRASH_INFO_SIZE;
-		}
-		memset(pronto_crash_reason2, 0, CRASH_INFO_SIZE);
-		snprintf(pronto_crash_reason2, nStringSize , "%s%s", pronto_fail_str, smem_reset_reason );
-	}
+	snprintf(pronto_crash_reason2, strlen(pronto_fail_str)+min(smem_reset_size, sizeof(pronto_crash_reason2)) , "%s%s", pronto_fail_str, smem_reset_reason );
 //E [VY52/VY55][bug_486] Frank_Chan add
 
 		memset(smem_reset_reason, 0, smem_reset_size);

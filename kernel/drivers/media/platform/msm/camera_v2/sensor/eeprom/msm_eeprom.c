@@ -1,4 +1,4 @@
-﻿/* Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -949,9 +949,8 @@ static int32_t msm_eeprom_platform_probe(struct platform_device *pdev)
 /*Bug1961,Jerry,IMX008, LI006 purple sky*/
 /*Jerry, LI007 flash light rolloff, GC005 rolloff and awb*/
 /*Aaron, IMX009, LI008, GC006, WeChat black screen*/
-/*Jenny, Li005, fine tune Liteon again*/
-/*Jerry, IMX010, Li006, Flash light sensitivity*/
-		pr_err("Camera eeprom 1st IMX010, GC006\n");
+/*John, GC007, front cam low light redish face*/
+		pr_err("Camera eeprom 1st IMX009, GC007\n");
 	}
 	else if ((e_ctrl->memory_data[0]==0x4C)||(e_ctrl->memory_data[0]==0x6C)){
 		cci_camera_source = 2;
@@ -960,7 +959,7 @@ static int32_t msm_eeprom_platform_probe(struct platform_device *pdev)
                   e_ctrl->memory_data[0xD3];
 		pr_err("AF infinity_dac=0x%X, macro_dac=0x%X, starting_dac=0x%X\n",infinity_dac_t,macro_dac_t,starting_dac_t);
 /*AF DATA E*/
-		pr_err("Camera eeprom 2st LI006, GC006\n");
+		pr_err("Camera eeprom 2st LI008, GC007\n");
 	}
 /**/
 /*Bug1095,guanyi,EEPROM E*/

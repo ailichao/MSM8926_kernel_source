@@ -28,22 +28,16 @@ static void mdp3_vsync_intr_handler(int type, void *arg)
 {
 	struct mdp3_dma *dma = (struct mdp3_dma *)arg;
 	struct mdp3_vsync_notification vsync_client;
-	unsigned int wait_for_next_vs;
 
 	pr_debug("mdp3_vsync_intr_handler\n");
 	spin_lock(&dma->dma_lock);
 	vsync_client = dma->vsync_client;
-	wait_for_next_vs = !dma->vsync_status;
-	dma->vsync_status = 0;
-	if (wait_for_next_vs)
-		complete(&dma->vsync_comp);
+	complete(&dma->vsync_comp);
 	spin_unlock(&dma->dma_lock);
-	if (vsync_client.handler) {
+	if (vsync_client.handler)
 		vsync_client.handler(vsync_client.arg);
-	} else {
-		if (wait_for_next_vs)
-			mdp3_irq_disable_nosync(type);
-	}
+	else
+		mdp3_irq_disable_nosync(type);
 }
 
 static void mdp3_dma_done_intr_handler(int type, void *arg)
@@ -272,23 +266,6 @@ static int mdp3_dma_sync_config(struct mdp3_dma *dma,
 		MDP3_REG_WRITE(MDP3_REG_TEAR_CHECK_EN, 0x1);
 	}
 	return 0;
-}
-
-static void mdp3_dma_stride_config(struct mdp3_dma *dma, int stride)
-{
-	struct mdp3_dma_source *source_config;
-	u32 dma_stride_offset;
-
-	if (dma->dma_sel == MDP3_DMA_P)
-		dma_stride_offset = MDP3_REG_DMA_P_IBUF_Y_STRIDE;
-	else
-		dma_stride_offset = MDP3_REG_DMA_S_IBUF_Y_STRIDE;
-
-	source_config = &dma->source_config;
-	source_config->stride = stride;
-	pr_debug("%s: Update the fb stride for DMA to %d", __func__,
-						(u32)source_config->stride);
-	MDP3_REG_WRITE(dma_stride_offset, source_config->stride);
 }
 
 static int mdp3_dmap_config(struct mdp3_dma *dma,
@@ -573,9 +550,7 @@ static int mdp3_dmap_update(struct mdp3_dma *dma, void *buf,
 		intf->start(intf);
 	}
 
-	mb();
-	dma->vsync_status = MDP3_REG_READ(MDP3_REG_INTR_STATUS) &
-		(1 << MDP3_INTR_LCDC_START_OF_FRAME);
+	wmb();
 	init_completion(&dma->vsync_comp);
 	spin_unlock_irqrestore(&dma->dma_lock, flag);
 
@@ -853,9 +828,6 @@ static int mdp3_dma_stop(struct mdp3_dma *dma, struct mdp3_intf *intf)
 					MDP3_DMA_CALLBACK_TYPE_DMA_DONE);
 	mdp3_irq_disable(MDP3_INTR_LCDC_UNDERFLOW);
 
-	MDP3_REG_WRITE(MDP3_REG_INTR_ENABLE, 0);
-	MDP3_REG_WRITE(MDP3_REG_INTR_CLEAR, 0xfffffff);
-
 	init_completion(&dma->dma_comp);
 	dma->vsync_client.handler = NULL;
 	return ret;
@@ -880,7 +852,6 @@ int mdp3_dma_init(struct mdp3_dma *dma)
 		dma->vsync_enable = mdp3_dma_vsync_enable;
 		dma->start = mdp3_dma_start;
 		dma->stop = mdp3_dma_stop;
-		dma->config_stride = mdp3_dma_stride_config;
 		break;
 	case MDP3_DMA_S:
 		dma->dma_config = mdp3_dmas_config;
@@ -895,7 +866,6 @@ int mdp3_dma_init(struct mdp3_dma *dma)
 		dma->vsync_enable = mdp3_dma_vsync_enable;
 		dma->start = mdp3_dma_start;
 		dma->stop = mdp3_dma_stop;
-		dma->config_stride = mdp3_dma_stride_config;
 		break;
 	case MDP3_DMA_E:
 	default:

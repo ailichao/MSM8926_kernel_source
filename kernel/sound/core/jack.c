@@ -338,7 +338,7 @@ void snd_jack_report(struct snd_jack *jack, int status)
 				input_report_key(jack->indev_appkey, jack->key[i],
 					 status & testbit);
 			else
-			input_report_key(jack->input_dev, jack->key[i],
+				input_report_key(jack->input_dev, jack->key[i],
 					 status & testbit);
 		}
 		// BAM_E C 140220

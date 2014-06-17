@@ -637,60 +637,6 @@ int read_ramdump_zip_on_flag( char *page, char **start, off_t off, int count, in
    return len;
 }
 
-//quiet reboot
-#define CCI_QUIET_REBOOT_ADDR MSM_IMEM_BASE + (MSM_IMEM_SIZE - 12)
-int is_quiet_reboot_flag(void)
-{
-	int result = 0;
-#ifndef CCI_KLOG_ALLOW_FORCE_PANIC
-	int *bIsQuietReboot = CCI_QUIET_REBOOT_ADDR;
-	char tmp[5] = {0};
-
-	memcpy(tmp, (char*)bIsQuietReboot, 4);
-
-	if (strcmp(tmp, "QRBT") == 0)
-	{
-		result = 1;
-	}
-#endif
-	return result;
-}
-
-void set_quiet_reboot_flag(void)
-{
-       __raw_writel(0x54425251, CCI_QUIET_REBOOT_ADDR); /*QRBT reverse = TBRQ*/
-	mb();
-}
-
-int read_quiet_reboot_flag( char *page, char **start, off_t off, int count, int *eof, void *data )
-{
-   int len = 0;
-#ifndef CCI_KLOG_ALLOW_FORCE_PANIC
-   int *bIsQuietReboot = CCI_QUIET_REBOOT_ADDR;
-   char tmp[5] = {0};
-
-   memcpy(tmp, (char*)bIsQuietReboot, 4);
-   len = sprintf(page, "%s", tmp);
-#endif
-   return len;
-}
-
-int read_quiet_reboot_flag_erase( char *page, char **start, off_t off, int count, int *eof, void *data )
-{
-   int len = 0;
-#ifndef CCI_KLOG_ALLOW_FORCE_PANIC
-   int *bIsQuietReboot = CCI_QUIET_REBOOT_ADDR;
-   char tmp[5] = {0};
-
-   memcpy(tmp, (char*)bIsQuietReboot, 4);
-   len = sprintf(page, "%s", tmp);
-
-   __raw_writel(0x0, bIsQuietReboot);
-   mb();
-#endif
-   return len;
-}
-
 static int __init msm_restart_init(void)
 {
 #ifdef CONFIG_MSM_DLOAD_MODE
@@ -707,10 +653,6 @@ static int __init msm_restart_init(void)
 
 	create_proc_read_entry("ramdump_zip_on", 0, NULL, read_ramdump_zip_on_flag, NULL);
 	create_proc_read_entry("rcovry_on", 0, NULL, read_rcovry_on_flag, NULL);
-
-	//quiet reboot
-	create_proc_read_entry("quiet_reboot_on", 0, NULL, read_quiet_reboot_flag, NULL);
-	create_proc_read_entry("quiet_reboot_on_erase", 0, NULL, read_quiet_reboot_flag_erase, NULL);
 
 	if (scm_is_call_available(SCM_SVC_PWR, SCM_IO_DISABLE_PMIC_ARBITER) > 0)
 		scm_pmic_arbiter_disable_supported = true;

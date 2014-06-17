@@ -540,7 +540,7 @@ int32_t gc0339_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 			s_ctrl->sensordata->sensor_name);
 		return rc;
 	}
-	
+
 	/**/
 	if(checksubcam_ID == 0) {
 	if(strcmp("SKUAA_ST_gc0339",s_ctrl->sensordata->sensor_name)==0) {

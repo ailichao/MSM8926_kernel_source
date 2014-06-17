@@ -32,8 +32,8 @@
 * Local Variable/Structure Declaration
 *******************************************************************************/
 
-#define KLOG_VERSION		"1.14.1"
-#define KLOG_VERSION_HEX	0x00010E01
+#define KLOG_VERSION		"1.14.0"
+#define KLOG_VERSION_HEX	0x00010E00
 
 //make sure the category is able to write
 #define CHK_CATEGORY(x) \
@@ -330,7 +330,7 @@ void set_fault_state(int level, int type, const char* msg)
 		fault_msg[0] = 0;
 		pklog_category[KLOG_CRASH]->index = 0;
 		pklog_category[KLOG_CRASH]->overload = 0;
-		memset(&pklog_category[KLOG_CRASH]->buffer[0], 0, CCI_KLOG_CRASH_SIZE - KLOG_CATEGORY_HEADER_SIZE);
+		memset(&pklog_category[KLOG_CRASH]->buffer[0], 0, pklog_category[KLOG_CRASH]->size - KLOG_CATEGORY_HEADER_SIZE);
 	}
 	else if(level > 0)//fault to crash start
 	{
@@ -496,7 +496,7 @@ static __inline__ void __cklc_append_char(unsigned int category, unsigned char c
 #endif // #if CCI_KLOG_CRASH_SIZE
 #if CCI_KLOG_APPSBL_SIZE
 		if(strncmp(pklog_category[KLOG_APPSBL]->name, KLOG_CATEGORY_NAME_APPSBL, strlen(KLOG_CATEGORY_NAME_APPSBL)) != 0
-		|| (int)pklog_category[KLOG_APPSBL]->index >= (int)(CCI_KLOG_APPSBL_SIZE - KLOG_CATEGORY_HEADER_SIZE))//category name not match or index over than valid size, that means garbage, so we clean it
+		|| (int)pklog_category[KLOG_APPSBL]->index >= (int)(pklog_category[KLOG_APPSBL]->size - KLOG_CATEGORY_HEADER_SIZE))//category name not match or index over than valid size, that means garbage, so we clean it
 		{
 			memset(&pklog_category[KLOG_APPSBL]->name[0], 0, CCI_KLOG_APPSBL_SIZE);
 			snprintf(pklog_category[KLOG_APPSBL]->name, KLOG_CATEGORY_NAME_LENGTH, KLOG_CATEGORY_NAME_APPSBL);
@@ -835,7 +835,7 @@ void update_priority(void)
 #endif // #ifdef CONFIG_WARMBOOT_CRASH
 
 #ifdef CONFIG_WARMBOOT_CRASH
-		if((warmboot == CONFIG_WARMBOOT_CRASH || (warmboot != 0 && (crashflag == CONFIG_WARMBOOT_CRASH || unknownrebootflag == CONFIG_WARMBOOT_CRASH)))
+		if((warmboot == CONFIG_WARMBOOT_CRASH || crashflag == CONFIG_WARMBOOT_CRASH || unknownrebootflag == CONFIG_WARMBOOT_CRASH)
 #else // #ifdef CONFIG_WARMBOOT_CRASH
 		if(warmboot == 0xC0DEDEAD
 #endif // #ifdef CONFIG_WARMBOOT_CRASH
@@ -901,7 +901,7 @@ void cklc_save_magic(char *magic, int state)
 #endif // #ifdef CCI_KLOG_DETAIL_LOG
 
 //magic
-	if(warmboot == 0 || magic_priority == KLOG_PRIORITY_INVALID || !strncmp(klog_magic, KLOG_MAGIC_POWER_OFF, KLOG_MAGIC_LENGTH))//cold-boot
+	if(magic_priority == KLOG_PRIORITY_INVALID || !strncmp(klog_magic, KLOG_MAGIC_POWER_OFF, KLOG_MAGIC_LENGTH))//cold-boot
 	{
 		state = 0;
 		if(magic_priority == KLOG_PRIORITY_INVALID)//invalid magic, init klog with default magic
@@ -1060,53 +1060,6 @@ void clear_klog(void)
 //Clear Each KLOG Buffer
 	for(i = 0; i < KLOG_IGNORE; i++)
 	{
-		switch(i)
-		{
-#if CCI_KLOG_CRASH_SIZE
-			case KLOG_CRASH:
-				snprintf(pklog_category[KLOG_CRASH]->name, KLOG_CATEGORY_NAME_LENGTH, KLOG_CATEGORY_NAME_CRASH);
-				pklog_category[KLOG_CRASH]->size = CCI_KLOG_CRASH_SIZE;
-				break;
-#endif // #if CCI_KLOG_CRASH_SIZE
-#if CCI_KLOG_APPSBL_SIZE
-			case KLOG_APPSBL:
-				snprintf(pklog_category[KLOG_APPSBL]->name, KLOG_CATEGORY_NAME_LENGTH, KLOG_CATEGORY_NAME_APPSBL);
-				pklog_category[KLOG_APPSBL]->size = CCI_KLOG_APPSBL_SIZE;
-				break;
-#endif // #if CCI_KLOG_APPSBL_SIZE
-#if CCI_KLOG_KERNEL_SIZE
-			case KLOG_KERNEL:
-				snprintf(pklog_category[KLOG_KERNEL]->name, KLOG_CATEGORY_NAME_LENGTH, KLOG_CATEGORY_NAME_KERNEL);
-				pklog_category[KLOG_KERNEL]->size = CCI_KLOG_KERNEL_SIZE;
-				break;
-#endif // #if CCI_KLOG_KERNEL_SIZE
-#if CCI_KLOG_ANDROID_MAIN_SIZE
-			case KLOG_ANDROID_MAIN:
-				snprintf(pklog_category[KLOG_ANDROID_MAIN]->name, KLOG_CATEGORY_NAME_LENGTH, KLOG_CATEGORY_NAME_ANDROID_MAIN);
-				pklog_category[KLOG_ANDROID_MAIN]->size = CCI_KLOG_ANDROID_MAIN_SIZE;
-				break;
-#endif // #if CCI_KLOG_ANDROID_MAIN_SIZE
-#if CCI_KLOG_ANDROID_SYSTEM_SIZE
-			case KLOG_ANDROID_SYSTEM:
-				snprintf(pklog_category[KLOG_ANDROID_SYSTEM]->name, KLOG_CATEGORY_NAME_LENGTH, KLOG_CATEGORY_NAME_ANDROID_SYSTEM);
-				pklog_category[KLOG_ANDROID_SYSTEM]->size = CCI_KLOG_ANDROID_SYSTEM_SIZE;
-				break;
-#endif // #if CCI_KLOG_ANDROID_SYSTEM_SIZE
-#if CCI_KLOG_ANDROID_RADIO_SIZE
-			case KLOG_ANDROID_RADIO:
-				snprintf(pklog_category[KLOG_ANDROID_RADIO]->name, KLOG_CATEGORY_NAME_LENGTH, KLOG_CATEGORY_NAME_ANDROID_RADIO);
-				pklog_category[KLOG_ANDROID_RADIO]->size = CCI_KLOG_ANDROID_RADIO_SIZE;
-				break;
-#endif // #if CCI_KLOG_ANDROID_RADIO_SIZE
-#if CCI_KLOG_ANDROID_EVENTS_SIZE
-			case KLOG_ANDROID_EVENTS:
-				snprintf(pklog_category[KLOG_ANDROID_EVENTS]->name, KLOG_CATEGORY_NAME_LENGTH, KLOG_CATEGORY_NAME_ANDROID_EVENTS);
-				pklog_category[KLOG_ANDROID_EVENTS]->size = CCI_KLOG_ANDROID_EVENTS_SIZE;
-				break;
-#endif // #if CCI_KLOG_ANDROID_EVENTS_SIZE
-			default:
-				break;
-		}
 #if CCI_KLOG_APPSBL_SIZE
 		if(i == KLOG_APPSBL)//skip APPSBL
 		{
@@ -1507,7 +1460,7 @@ static long klog_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 #if CCI_KLOG_CRASH_SIZE
 		case KLOG_IOCTL_GET_CRASH:
-			if(copy_to_user((void *)arg, &pklog_category[KLOG_CRASH]->name[0], CCI_KLOG_CRASH_SIZE))
+			if(copy_to_user((void *)arg, &pklog_category[KLOG_CRASH]->name[0], pklog_category[KLOG_CRASH]->size))
 			{
 				return -EFAULT;
 			}
@@ -1516,7 +1469,7 @@ static long klog_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 #if CCI_KLOG_APPSBL_SIZE
 		case KLOG_IOCTL_GET_APPSBL:
-			if(copy_to_user((void *)arg, &pklog_category[KLOG_APPSBL]->name[0], CCI_KLOG_APPSBL_SIZE))
+			if(copy_to_user((void *)arg, &pklog_category[KLOG_APPSBL]->name[0], pklog_category[KLOG_APPSBL]->size))
 			{
 				return -EFAULT;
 			}
@@ -1525,7 +1478,7 @@ static long klog_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 #if CCI_KLOG_KERNEL_SIZE
 		case KLOG_IOCTL_GET_KERNEL:
-			if(copy_to_user((void *)arg, &pklog_category[KLOG_KERNEL]->name[0], CCI_KLOG_KERNEL_SIZE))
+			if(copy_to_user((void *)arg, &pklog_category[KLOG_KERNEL]->name[0], pklog_category[KLOG_KERNEL]->size))
 			{
 				return -EFAULT;
 			}
@@ -1534,7 +1487,7 @@ static long klog_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 #if CCI_KLOG_ANDROID_MAIN_SIZE
 		case KLOG_IOCTL_GET_ANDROID_MAIN:
-			if(copy_to_user((void *)arg, &pklog_category[KLOG_ANDROID_MAIN]->name[0], CCI_KLOG_ANDROID_MAIN_SIZE))
+			if(copy_to_user((void *)arg, &pklog_category[KLOG_ANDROID_MAIN]->name[0], pklog_category[KLOG_ANDROID_MAIN]->size))
 			{
 				return -EFAULT;
 			}
@@ -1543,7 +1496,7 @@ static long klog_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 #if CCI_KLOG_ANDROID_SYSTEM_SIZE
 		case KLOG_IOCTL_GET_ANDROID_SYSTEM:
-			if(copy_to_user((void *)arg, &pklog_category[KLOG_ANDROID_SYSTEM]->name[0], CCI_KLOG_ANDROID_SYSTEM_SIZE))
+			if(copy_to_user((void *)arg, &pklog_category[KLOG_ANDROID_SYSTEM]->name[0], pklog_category[KLOG_ANDROID_SYSTEM]->size))
 			{
 				return -EFAULT;
 			}
@@ -1552,7 +1505,7 @@ static long klog_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 #if CCI_KLOG_ANDROID_RADIO_SIZE
 		case KLOG_IOCTL_GET_ANDROID_RADIO:
-			if(copy_to_user((void *)arg, &pklog_category[KLOG_ANDROID_RADIO]->name[0], CCI_KLOG_ANDROID_RADIO_SIZE))
+			if(copy_to_user((void *)arg, &pklog_category[KLOG_ANDROID_RADIO]->name[0], pklog_category[KLOG_ANDROID_RADIO]->size))
 			{
 				return -EFAULT;
 			}
@@ -1561,7 +1514,7 @@ static long klog_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 #if CCI_KLOG_ANDROID_EVENTS_SIZE
 		case KLOG_IOCTL_GET_ANDROID_EVENTS:
-			if(copy_to_user((void *)arg, &pklog_category[KLOG_ANDROID_EVENTS]->name[0], CCI_KLOG_ANDROID_EVENTS_SIZE))
+			if(copy_to_user((void *)arg, &pklog_category[KLOG_ANDROID_EVENTS]->name[0], pklog_category[KLOG_ANDROID_EVENTS]->size))
 			{
 				return -EFAULT;
 			}
@@ -1570,7 +1523,7 @@ static long klog_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 		case KLOG_IOCTL_GET_RESERVE:
 /*
-			if(copy_to_user((void *)arg, &pklog_category[KLOG_RESERVE]->name[0], CCI_KLOG_RESERVE_SIZE))
+			if(copy_to_user((void *)arg, &pklog_category[KLOG_RESERVE]->name[0], pklog_category[KLOG_RESERVE]->size))
 			{
 				return -EFAULT;
 			}
@@ -2176,7 +2129,7 @@ static int __init cklc_init(void)
 	}
 
 #ifdef STUFF_CRASH_DEFAULT
-	kprintk("CCI KLog Init: prev_normal_boot=%d, crashflag=0x%X, unknownrebootflag=0x%X\n", previous_normal_boot, crashflag, unknownrebootflag);
+	kprintk("CCI KLog Init: prev_normal_boot=%d, crashflag=0x%X\n", previous_normal_boot, crashflag);
 #else // #ifdef STUFF_CRASH_DEFAULT
 	kprintk("CCI KLog Init: prev_normal_boot=%d\n", previous_normal_boot);
 #endif // #ifdef STUFF_CRASH_DEFAULT

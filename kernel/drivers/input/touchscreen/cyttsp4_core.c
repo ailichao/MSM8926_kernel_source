@@ -164,7 +164,7 @@ enum DATATYPE{
 static u16 shipping_version =0x0600;
 
 static struct raw_data_range ftm_raw_data[TOTAL_SUN] = {
-	{30, 5, 47, 10, 168, -359, 25, -25},      // main source(truly)
+	{18, 5, 43, 14, 131, -324, 15, -15},      // main source(truly)
 	{80, 5, 80, 5, 1000, -1500, 30, -30},      // second source(Jtouch)
 	{0, 0, 0, 0, 0, 0, 0, 0},      // third source
 	{0, 0, 0, 0, 0, 0, 0, 0},      // fourth source

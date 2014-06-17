@@ -194,10 +194,6 @@ static void cci_hw_det_gpio(void)
 	cci_band_id 	 = cci_hw_get_type(GPIO_INDEX_BAND_ID, GPIO_NUM_BAND_ID-1);
 	cci_hw_id 		 = cci_hw_get_type(GPIO_INDEX_HW_ID, GPIO_NUM_HW_ID);
 	cci_customer_id = cci_hw_get_type(GPIO_INDEX_CUSTOMER_ID, GPIO_NUM_CUSTOMER_ID);
-
-	if (cci_project_id == CCI_PROJECTID_VY55_56) {
-		cci_sim_id = CCI_SIMID_SS;
-	}
 	
 	printk(KERN_ERR "In %s, Read CCI HW ID from GPIO\n", "cci_hw_det_gpio");
 	printk(KERN_ERR "cci_project_id=%d, cci_sim_id=%d, cci_band_id=%d, cci_hw_id=%d, cci_customer_id=%d",

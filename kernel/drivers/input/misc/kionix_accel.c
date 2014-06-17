@@ -145,7 +145,6 @@
 #define ACCEL_GRP4_CTRL_REG1	0x1B
 #define ACCEL_GRP4_INT_CTRL1	0x1E
 #define ACCEL_GRP4_DATA_CTRL	0x21
-#define ACCEL_GRP4_SELF_TEST  0x3A
 /* CTRL_REG1 */
 #define ACCEL_GRP4_PC1_OFF		0x7F
 #define ACCEL_GRP4_PC1_ON		(1 << 7)
@@ -302,7 +301,6 @@ struct kionix_accel_driver {
 	int (*kionix_accel_power_on_init)(struct kionix_accel_driver *acceld);
 	int (*kionix_accel_operate)(struct kionix_accel_driver *acceld);
 	int (*kionix_accel_standby)(struct kionix_accel_driver *acceld);
-	int (*kionix_accel_selftest)(struct kionix_accel_driver *acceld); //Add a Self-Test function Mar04 Kenny
 
 #ifdef    CONFIG_HAS_EARLYSUSPEND
 	struct early_suspend early_suspend;
@@ -851,35 +849,15 @@ static int kionix_accel_grp4_standby(struct kionix_accel_driver *acceld)
 
 	return 0;
 }
-
-//Add a Self-Test function  BEGIN by KennyY Mar04
-/*When 0xCA is written to this register, the MEMS self-test function is enabled.  
-	Writing 0x00 to this register will return the accelerometer to normal operation.*/
-static int kionix_accel_grp4_selftest(struct kionix_accel_driver *acceld)
-{
-	int err=0;
-	if(acceld->accel_drdy == 0)
-		err = i2c_smbus_write_byte_data(acceld->client, ACCEL_GRP4_SELF_TEST, 0xCA);
-	if (err < 0) return err;
-
-	mdelay(100);
-
-	err = i2c_smbus_write_byte_data(acceld->client, ACCEL_GRP4_SELF_TEST,0);
-	if (err < 0) return err;	
-
-	return 0;
-}
-//Add a Self-Test function  END by KennyY Mar04
-
 /*Auto-Cali Start*/
 /*Kionix Auto-Cali Start*/
 #define KIONIX_AUTO_CAL
 #ifdef KIONIX_AUTO_CAL
-#define Sensitivity_def	1024	//
+#define Sensitivity_def	1024	//	
 #define Detection_range 200 	// Follow KXTJ2 SPEC Offset Range define
 #define Stable_range 50     	// Stable iteration
-#define BUF_RANGE_Limit 40
-static int BUF_RANGE = BUF_RANGE_Limit;
+#define BUF_RANGE_Limit 40 	
+static int BUF_RANGE = BUF_RANGE_Limit;			
 static int temp_zbuf[50]={0};
 static int temp_zsum = 0; // 1024 * BUF_RANGE ;
 static int Z_AVG[2] = {Sensitivity_def,Sensitivity_def} ;
@@ -895,7 +873,7 @@ static void kionix_accel_grp4_report_accel_data(struct kionix_accel_driver *acce
 	}; } accel_data;
 	s16 x, y, z;
 	s16 raw[3];
-	int k;
+	int k;	
 	int err;
 	struct input_dev *input_dev = acceld->input_dev;
 	int loop;
@@ -968,7 +946,7 @@ static void kionix_accel_grp4_report_accel_data(struct kionix_accel_driver *acce
 					Z_AVG[0] = temp_zsum / BUF_RANGE;
 					//k printk("==============================================");
 					}
-				else
+				else 
 					{
 					Z_AVG[1] = temp_zsum / BUF_RANGE;
 					//k printk("==============================================");	
@@ -976,10 +954,10 @@ static void kionix_accel_grp4_report_accel_data(struct kionix_accel_driver *acce
 				// printk("KXTJ2 start Z compensation Z_AVG Max Min,%d,%d,%d\n",(temp_zsum / BUF_RANGE),Wave_Max,Wave_Min);
 			}
 		}
-		//else if(abs((abs(raw[2])- Sensitivity_def))  > ((Detection_range)+ 154))
-		//{
-		//	printk("KXTJ2 out of SPEC Raw Data,%d,%d,%d\n",raw[0],raw[1],raw[2]);
-		//}
+		else if(abs((abs(raw[2])- Sensitivity_def))  > ((Detection_range)+ 154))
+		{
+			printk("KXTJ2 out of SPEC Raw Data,%d,%d,%d\n",raw[0],raw[1],raw[2]);
+		}
 		//else
 		//{
 		//    printk("KXTJ2 not in horizontal X=%d, Y=%d\n", raw[0], raw[1]);
@@ -1077,13 +1055,13 @@ static int kionix_accel_grp4_update_odr(struct kionix_accel_driver *acceld, unsi
 	else
 		acceld->accel_registers[accel_grp4_data_ctrl] = odr;
 
-
+		
 	/*		add by Rick Hsu		*/
 	printk("alp : kionix_accel_grp4_update_odr  i(%d), cutoff(%d), mask(%d)\n", i , kionix_accel_grp4_odr_table[i].cutoff, kionix_accel_grp4_odr_table[i].mask);	
 	printk("alp : data_ctrl(%x), ctrl_reg(%x)\n",acceld->accel_registers[accel_grp4_data_ctrl],acceld->accel_registers[accel_grp4_ctrl_reg1]);	
 	/*		add by Rick Hsu		*/	
-
-
+		
+		
 	/* Do not need to update DATA_CTRL_REG register if the sensor is not currently turn on */
 	if(atomic_read(&acceld->accel_enabled) > 0) {
 		err = i2c_smbus_write_byte_data(acceld->client, ACCEL_GRP4_CTRL_REG1, 0);
@@ -1165,7 +1143,7 @@ static void kionix_accel_power_off(struct kionix_accel_driver *acceld)
 static irqreturn_t kionix_accel_isr(int irq, void *dev)
 {
 	struct kionix_accel_driver *acceld = dev;
-	//printk("kionix_accel_isr ++\n");
+
 	queue_delayed_work(acceld->accel_workqueue, &acceld->accel_work, 0);
 
 	return IRQ_HANDLED;
@@ -1174,7 +1152,7 @@ static irqreturn_t kionix_accel_isr(int irq, void *dev)
 static void kionix_accel_work(struct work_struct *work)
 {
 	struct kionix_accel_driver *acceld = container_of((struct delayed_work *)work,	struct kionix_accel_driver, accel_work);
-	//printk("kionix_accel_work ++ drdy=%d\n",acceld->accel_drdy);
+
 	if(acceld->accel_drdy == 0)
 		queue_delayed_work(acceld->accel_workqueue, &acceld->accel_work, acceld->poll_delay);
 
@@ -1217,8 +1195,6 @@ static int kionix_accel_enable(struct kionix_accel_driver *acceld)
 	int err = 0;
 	long remaining;
 
-	printk("kionix into kionix_accel_enable finish ++\n"); // add by rick
-
 	mutex_lock(&acceld->mutex_earlysuspend);
 
 	atomic_set(&acceld->accel_suspend_continue, 0);
@@ -1247,8 +1223,6 @@ static int kionix_accel_enable(struct kionix_accel_driver *acceld)
 
 	atomic_inc(&acceld->accel_enabled);
 
-	printk("kionix into kionix_accel_enable finish --\n"); // add by rick
-
 exit:
 	mutex_unlock(&acceld->mutex_earlysuspend);
 
@@ -1258,8 +1232,6 @@ exit:
 static int kionix_accel_disable(struct kionix_accel_driver *acceld)
 {
 	int err = 0;
-
-	printk("kionix into kionix_accel_disable finish ++\n"); // add by rick
 
 	mutex_lock(&acceld->mutex_resume);
 
@@ -1279,12 +1251,8 @@ static int kionix_accel_disable(struct kionix_accel_driver *acceld)
 		}
 	}
 
-	printk("kionix into kionix_accel_disable finish --\n"); // add by rick
-
 exit:
 	mutex_unlock(&acceld->mutex_resume);
-
-	//printk("acceld->accel_enabled=%d\n", acceld->accel_enabled); // add by rick
 
 	return err;
 }
@@ -1437,8 +1405,9 @@ static ssize_t kionix_accel_set_delay(struct device *dev, struct device_attribut
 	printk("alp : interval (%lu)\n",interval);
 	printk("alp : kxtj2_set_poll buf (%s)\n",buf);
 	/*		add by Rick Hsu		*/
-
-
+	
+	
+	
 	/* Lock the device to prevent races with open/close (and itself) */
 	mutex_lock(&input_dev->mutex);
 
@@ -1585,73 +1554,53 @@ static ssize_t kionix_accel_get_newcali(struct device *dev,
 	struct kionix_accel_driver *acceld = i2c_get_clientdata(client);
 	int calibration[3];
 	long AVG_temp[3];
-	int x, y, z;
-	int err=0,i, gsensor_enable_flag=0;
-
+	int x, y, z;				
+	int err=0,i;
+	
 	//atomic_inc(&acceld->accel_enabled);
-	// atomic_set(&acceld->accel_enabled, 0);	// add by rick
-	// err = kionix_accel_disable(acceld);	// add by rick hsu
 
-	acceld->accel_cali[acceld->axis_map_x]=0;
+		acceld->accel_cali[acceld->axis_map_x]=0;
   	acceld->accel_cali[acceld->axis_map_y]=0;
   	acceld->accel_cali[acceld->axis_map_z]=0;
-
-	if(atomic_read(&acceld->accel_enabled) <= 0){
+					
 		err = kionix_accel_enable(acceld);
-		gsensor_enable_flag = 1;
-		printk("kionix newcali__kionix_accel_enable finish, gsensor_enable_flag=%d\n", gsensor_enable_flag); // add by rick
-	}	
-	else {
-		printk("gsensor_enable_flag=%d ++\n", gsensor_enable_flag); // add by rick
-	}	// add by rick hsu
-	// err = kionix_accel_enable(acceld);	// mark by rick hsu
+		mdelay(20); // delay 20 msec	
+		acceld->poll_interval = 5;
+		acceld->poll_delay = msecs_to_jiffies(acceld->poll_interval);
+		err = acceld->kionix_accel_update_odr(acceld, acceld->poll_interval);
+		mdelay(20); // delay 20 msec
 
-	mdelay(20); // delay 20 msec
-	acceld->poll_interval = 5;
-	acceld->poll_delay = msecs_to_jiffies(acceld->poll_interval);
-	err = acceld->kionix_accel_update_odr(acceld, acceld->poll_interval);
-	mdelay(20); // delay 20 msec
+			AVG_temp[0]=0;
+			AVG_temp[1]=0;	
+			AVG_temp[2]=0;
 
-	AVG_temp[0]=0;
-	AVG_temp[1]=0;
-	AVG_temp[2]=0;
+			for (i=0; i<SUM_cycle ;i++)
+			{	
+	            read_lock(&acceld->rwlock_accel_data);
+					x= acceld->accel_data[acceld->axis_map_x];                                   
+					y= acceld->accel_data[acceld->axis_map_y];                                   
+					z= acceld->accel_data[acceld->axis_map_z];
+					mdelay(20); // delay 20 msec                                  
+				read_unlock(&acceld->rwlock_accel_data);  
+				
+				AVG_temp[0]+=x;
+				AVG_temp[1]+=y;
+				AVG_temp[2]+=z;
+				//printk("Calibration Data X=%d,Y=%d,Z=%d\n",calibration[0],calibration[1],calibration[2])
+			}
 
-	for (i=0; i<SUM_cycle ;i++)
-	{	
-	    read_lock(&acceld->rwlock_accel_data);
-			x= acceld->accel_data[acceld->axis_map_x];
-			y= acceld->accel_data[acceld->axis_map_y];
-			z= acceld->accel_data[acceld->axis_map_z];
-			read_unlock(&acceld->rwlock_accel_data);	// modify by rick
-			mdelay(20); // delay 20 msec (modify by rick)     
+			read_lock(&acceld->rwlock_accel_data);
 
-		AVG_temp[0]+=x;
-		AVG_temp[1]+=y;
-		AVG_temp[2]+=z;
-		//printk("Calibration Data X=%d,Y=%d,Z=%d\n",calibration[0],calibration[1],calibration[2])
-		}
-
-	read_lock(&acceld->rwlock_accel_data);
-
-	calibration[0] = -(int)AVG_temp[0]/SUM_cycle;
-		calibration[1] = -(int)AVG_temp[1]/SUM_cycle;
-		calibration[2] =  (abs((int)AVG_temp[2]/SUM_cycle)-1024);
-		if (acceld->accel_data[acceld->axis_map_z] >= 0 )calibration[2] = - calibration[2];
-
-		acceld->accel_cali[acceld->axis_map_x] = (int)calibration[0];
-		acceld->accel_cali[acceld->axis_map_y] = (int)calibration[1];
-		acceld->accel_cali[acceld->axis_map_z] = (int)calibration[2];
-	    read_unlock(&acceld->rwlock_accel_data);
-		// printk("KXTJ2 New Calibration Data X=%d,Y=%d,Z=%d\n",calibration[0],calibration[1],calibration[2]);
-
-	if(gsensor_enable_flag != 0){
-		err = kionix_accel_disable(acceld);
-		printk("kionix newcali__kionix_accel_disable finish, gsensor_enable_flag=%d\n", gsensor_enable_flag); // add by rick
-	}	
-	else {
-		printk("gsensor_enable_flag=%d --\n", gsensor_enable_flag); // add by rick
-	}	// add by rick hsu
-	// err = kionix_accel_disable(acceld);	// add by rick hsu
+			calibration[0] = -(int)AVG_temp[0]/SUM_cycle;
+			calibration[1] = -(int)AVG_temp[1]/SUM_cycle;
+			calibration[2] =  (abs((int)AVG_temp[2]/SUM_cycle)-1024);
+			if (acceld->accel_data[acceld->axis_map_z] >= 0 )calibration[2] = - calibration[2];
+				
+			acceld->accel_cali[acceld->axis_map_x] = (int)calibration[0];
+			acceld->accel_cali[acceld->axis_map_y] = (int)calibration[1];
+			acceld->accel_cali[acceld->axis_map_z] = (int)calibration[2];
+	        read_unlock(&acceld->rwlock_accel_data);
+			// printk("KXTJ2 New Calibration Data X=%d,Y=%d,Z=%d\n",calibration[0],calibration[1],calibration[2]);
 
 	return sprintf(buf, "%d %d %d\n", calibration[0], calibration[1], calibration[2]);
 }
@@ -1663,13 +1612,14 @@ static ssize_t kionix_accel_get_cali(struct device *dev,
 	struct i2c_client *client = to_i2c_client(dev);
 	struct kionix_accel_driver *acceld = i2c_get_clientdata(client);
 	int calibration[3];
-
+	
 			read_lock(&acceld->rwlock_accel_data);	
 				calibration[0] = acceld->accel_cali[acceld->axis_map_x];
 				calibration[1] = acceld->accel_cali[acceld->axis_map_y];
 				calibration[2] = acceld->accel_cali[acceld->axis_map_z];
 			read_unlock(&acceld->rwlock_accel_data);
-
+	
+			
 	return sprintf(buf, "%d %d %d\n", calibration[0], calibration[1], calibration[2]);
 }
 
@@ -1737,29 +1687,6 @@ exit:
 	return (err < 0) ? err : count;
 }
 
-//Add a Self-Test function  BEGIN by KennyY Mar04
-static ssize_t kionix_accel_selftest(struct device *dev,
-				struct device_attribute *attr, char *buf)
-{				
-
-	struct i2c_client *client = to_i2c_client(dev);
-	struct kionix_accel_driver *acceld = i2c_get_clientdata(client);
-	int err=0;
-
-		err = kionix_accel_enable(acceld);
-		mdelay(20); // delay 20 msec
-		acceld->poll_interval = 5;
-		acceld->poll_delay = msecs_to_jiffies(acceld->poll_interval);
-		err = acceld->kionix_accel_update_odr(acceld, acceld->poll_interval);
-		mdelay(20); // delay 20 msec
-
-		err = acceld->kionix_accel_selftest(acceld);
-		if (err<0)
-			sprintf(buf,"KXTJ2 Self-Test FAIL!\n" );
-	return sprintf(buf, "KXTJ2 Self-Test PASS!\n" );
-}
-//Add a Self-Test function  END by KennyY Mar04
-
 //S [CCI]Ginger modified for factory test
 static ssize_t kionix_accel_ping(struct device *dev,
 				struct device_attribute *attr, char *buf)
@@ -1785,7 +1712,6 @@ static DEVICE_ATTR(data, S_IRUGO, kionix_accel_get_data, NULL);
 //static DEVICE_ATTR(cali, S_IRUGO|S_IWUSR, kionix_accel_get_cali, kionix_accel_set_cali);
 static DEVICE_ATTR(offset, S_IRUGO|S_IWUSR, kionix_accel_get_cali, kionix_accel_set_cali);
 static DEVICE_ATTR(cali, S_IRUGO, kionix_accel_get_newcali,NULL);
-static DEVICE_ATTR(selftest	, S_IRUGO, kionix_accel_selftest,NULL);  //Add a Self-Test function Mar04 Kenny
 //[CCI]Ginger modified for factory test
 static DEVICE_ATTR(ping, S_IRUGO, kionix_accel_ping, NULL);
 
@@ -1797,7 +1723,6 @@ static struct attribute *kionix_accel_attributes[] = {
 //	&dev_attr_cali.attr,
 	&dev_attr_offset.attr,
 	&dev_attr_cali.attr,
-	&dev_attr_selftest.attr, //Add a Self-Test function Mar04 Kenny
 	&dev_attr_ping.attr, //[CCI]Ginger modified for factory test
 	NULL
 };
@@ -1853,8 +1778,6 @@ void kionix_accel_earlysuspend_suspend(struct early_suspend *h)
 	struct kionix_accel_driver *acceld = container_of(h, struct kionix_accel_driver, early_suspend);
 	long remaining;
 
-	printk("kionix into accel_earlysuspend_suspend finish ++\n"); // add by rick
-
 	mutex_lock(&acceld->mutex_earlysuspend);
 
 	/* Only continue to suspend if enable did not intervene */
@@ -1878,7 +1801,6 @@ void kionix_accel_earlysuspend_suspend(struct early_suspend *h)
 
 	mutex_unlock(&acceld->mutex_earlysuspend);
 
-	printk("kionix into accel_earlysuspend_suspend finish --\n"); // add by rick
 	return;
 }
 
@@ -1886,8 +1808,6 @@ void kionix_accel_earlysuspend_resume(struct early_suspend *h)
 {
 	struct kionix_accel_driver *acceld = container_of(h, struct kionix_accel_driver, early_suspend);
 	int err;
-
-	printk("kionix into earlysuspend_resume finish ++\n"); // add by rick
 
 	mutex_lock(&acceld->mutex_resume);
 
@@ -1912,7 +1832,6 @@ void kionix_accel_earlysuspend_resume(struct early_suspend *h)
 
 	wake_up_interruptible(&acceld->wqh_suspend);
 
-	printk("kionix into earlysuspend_resume finish --\n"); // add by rick
 exit:
 	mutex_unlock(&acceld->mutex_resume);
 
@@ -1934,11 +1853,8 @@ static int __devinit kionix_accel_probe(struct i2c_client *client,
 
 //S [CCI]Ginger modified for MSM8226 DTS
 	//sensor_power_on(client);
-	if(accel_pdata->accel_irq_use_drdy)
-	{
-	    gpio_request(ACCEL_GPIO_INT, KIONIX_ACCEL_IRQ); 
-	    gpio_direction_input(ACCEL_GPIO_INT);
-	}
+	gpio_request(ACCEL_GPIO_INT, KIONIX_ACCEL_IRQ); 
+	gpio_direction_input(ACCEL_GPIO_INT);
 	printk("[CCI]%s: kionix_accel_probe start ---\n", __FUNCTION__);
 //E [CCI]Ginger modified for MSM8226 DTS
 
@@ -2075,7 +1991,6 @@ static int __devinit kionix_accel_probe(struct i2c_client *client,
 			acceld->kionix_accel_power_on_init		= kionix_accel_grp4_power_on_init;
 			acceld->kionix_accel_operate			= kionix_accel_grp4_operate;
 			acceld->kionix_accel_standby			= kionix_accel_grp4_standby;
-			acceld->kionix_accel_selftest				= kionix_accel_grp4_selftest; //Add a Self-Test function Mar04 Kenny
 			break;
 		default:
 			KMSGERR(&acceld->client->dev, \

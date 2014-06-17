@@ -1775,9 +1775,9 @@ static int mass_storage_function_init(struct android_usb_function *f,
 	struct fsg_common *common;
 	int err;
 	int i;
-	const char *name[3];
-#ifdef F_CDROM
-	int nluns;
+	const char *name[2];
+#ifdef F_CDROM 
+	int nluns; 
 #endif
 	config = kzalloc(sizeof(struct mass_storage_function_config),
 								GFP_KERNEL);
@@ -2985,10 +2985,8 @@ static void android_suspend(struct usb_gadget *gadget)
 	unsigned long flags;
 
 	spin_lock_irqsave(&cdev->lock, flags);
-	if (!dev->suspended) {
-		dev->suspended = 1;
-		schedule_work(&dev->work);
-	}
+	dev->suspended = 1;
+	schedule_work(&dev->work);
 	spin_unlock_irqrestore(&cdev->lock, flags);
 
 	composite_suspend(gadget);
@@ -3001,10 +2999,8 @@ static void android_resume(struct usb_gadget *gadget)
 	unsigned long flags;
 
 	spin_lock_irqsave(&cdev->lock, flags);
-	if (dev->suspended) {
-		dev->suspended = 0;
-		schedule_work(&dev->work);
-	}
+	dev->suspended = 0;
+	schedule_work(&dev->work);
 	spin_unlock_irqrestore(&cdev->lock, flags);
 
 	composite_resume(gadget);

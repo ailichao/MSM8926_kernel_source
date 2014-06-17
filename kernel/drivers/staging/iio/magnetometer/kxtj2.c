@@ -104,9 +104,6 @@
 #define YAS_DATA_CTRL_0HZ                                                 (0x08)
 #define YAS_XOUT_L                                                        (0x06)
 
-//[CCI]Add Kionix Self-Test function
-#define YAS_SELF_TEST                                                 (0x3a)
-
 struct yas_odr {
 	int delay;
 	uint8_t odr;
@@ -167,7 +164,6 @@ static int yas_get_enable(void);
 static int yas_set_enable(int enable);
 static int yas_get_position(void);
 static int yas_set_position(int position);
-static int yas_self_test(void);//[CCI]Add Kionix Self-Test function
 static int yas_measure(struct yas_data *raw, int num);
 static int yas_ext(int32_t cmd, void *result);
 
@@ -362,31 +358,6 @@ yas_set_position(int position)
 	return YAS_NO_ERROR;
 }
 
-//[CCI]Add Kionix Self-Test function
-//Add a Self-Test function  BEGIN by KennyY Mar04
-/*When 0xCA is written to this register, the MEMS self-test function is enabled.  
-	Writing 0x00 to this register will return the accelerometer to normal operation.*/
-static int
-yas_self_test(void)
-{
-	int err=0;
-	if (!module.initialized)
-		return YAS_ERROR_INITIALIZE;
-
-	//if(acceld->accel_drdy == 0) 
-        err = yas_write_reg(YAS_SELF_TEST, 0xca);
-
-	if (err < 0) return err;
-	
-	module.cbk.usleep(100000);
-
-	err = yas_write_reg(YAS_SELF_TEST,0);
-	if (err < 0) return err;	
-
-	return YAS_NO_ERROR;
-}
-//Add a Self-Test function  END by KennyY Mar04
-
 /*Kionix Auto-Cali Start*/
 #define KIONIX_AUTO_CAL
 //#undef KIONIX_AUTO_CAL
@@ -468,10 +439,10 @@ yas_measure(struct yas_data *raw, int num)
 				//printk("KXTJ2 start Z compensation Z_AVG Max Min,%d,%d,%d\n",(temp_zsum / BUF_RANGE),Wave_Max,Wave_Min);
 			}
 		}
-		//else if(abs((abs(dat[2])- Sensitivity_def))  > ((Detection_range)+ 154))
-		//{
-		//	printk("KXTJ2 out of SPEC Raw Data,%d,%d,%d\n",dat[0],dat[1],dat[2]);
-		//}
+		else if(abs((abs(dat[2])- Sensitivity_def))  > ((Detection_range)+ 154))
+		{
+			printk("KXTJ2 out of SPEC Raw Data,%d,%d,%d\n",dat[0],dat[1],dat[2]);
+		}
 		//else
 		//{
 		//    printk("KXTJ2 not in horizontal X=%d, Y=%d\n", raw[0], raw[1]);
@@ -531,7 +502,6 @@ yas_acc_driver_init(struct yas_acc_driver *f)
 	f->set_enable = yas_set_enable;
 	f->get_position = yas_get_position;
 	f->set_position = yas_set_position;
-	f->self_test = yas_self_test;//[CCI]Add Kionix Self-Test function
 	f->measure = yas_measure;
 	f->ext = yas_ext;
 	module.cbk = f->callback;
@@ -846,37 +816,6 @@ static ssize_t yas_ping(struct device *dev,
 }
 //E [CCI]Ginger modified for factory test
 
-//[CCI]Add Kionix Self-Test function
-//Add a Self-Test function  BEGIN by KennyY Mar04
-static ssize_t yas_selftest_show(struct device *dev,
-				struct device_attribute *attr, char *buf)
-{				
-	
-//		struct i2c_client *client = to_i2c_client(dev);
-//	struct kionix_accel_driver *acceld = i2c_get_clientdata(client);	
-	struct iio_dev *indio_dev = dev_get_drvdata(dev);
-	struct yas_state *st = iio_priv(indio_dev);
-	int err=0;
-
-		err = st->acc.set_enable(1);
-		mdelay(20); // delay 20 msec
-		//acceld->poll_interval = 5;
-		//acceld->poll_delay = msecs_to_jiffies(acceld->poll_interval);
-		//err = acceld->kionix_accel_update_odr(acceld, acceld->poll_interval);	
-		err = st->acc.set_delay(5);
-		mdelay(20); // delay 20 msec
-
-		mutex_lock(&st->lock);
-		err = st->acc.self_test();
-		mutex_unlock(&st->lock);
-
-		if (err<0)
-			return sprintf(buf,"KXTJ2 Self-Test FAIL!\n" );
-		else
-			return sprintf(buf, "KXTJ2 Self-Test PASS!\n" );
-}
-//Add a Self-Test function  END by KennyY Mar04
-
 static int yas_write_raw(struct iio_dev *indio_dev,
 		struct iio_chan_spec const *chan,
 		int val,
@@ -999,16 +938,12 @@ static IIO_DEVICE_ATTR(ping, S_IRUGO|S_IWUSR|S_IWGRP,
 //		yas_cali, NULL, 0);
 //static IIO_DEVICE_ATTR(offset, S_IRUGO|S_IWUSR|S_IWGRP,
 //		yas_get_offset, NULL, 0);
-//[CCI]Add Kionix Self-Test function
-static IIO_DEVICE_ATTR(selftest, S_IRUGO,
-		yas_selftest_show, NULL, 0);
 
 //E [CCI]Ginger modified for factory test
 static struct attribute *yas_attributes[] = {
 	&iio_dev_attr_sampling_frequency.dev_attr.attr,
 	&iio_dev_attr_position.dev_attr.attr,
 	&iio_dev_attr_ping.dev_attr.attr,//[CCI]Ginger modified for factory test
-	&iio_dev_attr_selftest.dev_attr.attr,  //[CCI]Add Kionix Self-Test function
 	NULL
 };
 static const struct attribute_group yas_attribute_group = {

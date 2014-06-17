@@ -37,6 +37,7 @@
 #define MAX_IMG_HEIGHT		0x3FFF
 #define MAX_DST_W		MAX_MIXER_WIDTH
 #define MAX_DST_H		MAX_MIXER_HEIGHT
+#define MAX_PLANES		4
 #define MAX_DOWNSCALE_RATIO	4
 #define MAX_UPSCALE_RATIO	20
 #define MAX_DECIMATION		4
@@ -50,11 +51,6 @@
 
 /* wait for at most 2 vsync for lowest refresh rate (24hz) */
 #define KOFF_TIMEOUT msecs_to_jiffies(84)
-
-#define OVERFETCH_DISABLE_TOP		BIT(0)
-#define OVERFETCH_DISABLE_BOTTOM	BIT(1)
-#define OVERFETCH_DISABLE_LEFT		BIT(2)
-#define OVERFETCH_DISABLE_RIGHT		BIT(3)
 
 #ifdef MDSS_MDP_DEBUG_REG
 static inline void mdss_mdp_reg_write(u32 addr, u32 val)
@@ -345,6 +341,9 @@ struct mdss_mdp_pipe {
 	u8 vert_deci;
 	struct mdss_mdp_img_rect src;
 	struct mdss_mdp_img_rect dst;
+	u32 phase_step_x;
+	u32 phase_step_y;
+
 	struct mdss_mdp_format_params *src_fmt;
 	struct mdss_mdp_plane_sizes src_planes;
 
@@ -354,8 +353,6 @@ struct mdss_mdp_pipe {
 	u8 blend_op;
 	u8 overfetch_disable;
 	u32 transp;
-	u32 bg_color;
-	u8 has_buf;
 
 	struct msm_fb_data_type *mfd;
 	struct mdss_mdp_mixer *mixer;
@@ -373,9 +370,6 @@ struct mdss_mdp_pipe {
 
 	struct mdp_overlay_pp_params pp_cfg;
 	struct mdss_pipe_pp_res pp_res;
-	struct mdp_scale_data scale;
-	u8 chroma_sample_h;
-	u8 chroma_sample_v;
 };
 
 struct mdss_mdp_writeback_arg {
@@ -501,7 +495,7 @@ int mdss_mdp_ctl_setup(struct mdss_mdp_ctl *ctl);
 int mdss_mdp_ctl_split_display_setup(struct mdss_mdp_ctl *ctl,
 		struct mdss_panel_data *pdata);
 int mdss_mdp_ctl_destroy(struct mdss_mdp_ctl *ctl);
-int mdss_mdp_ctl_start(struct mdss_mdp_ctl *ctl, bool handoff);
+int mdss_mdp_ctl_start(struct mdss_mdp_ctl *ctl);
 int mdss_mdp_ctl_stop(struct mdss_mdp_ctl *ctl);
 int mdss_mdp_ctl_intf_event(struct mdss_mdp_ctl *ctl, int event, void *arg);
 int mdss_mdp_perf_calc_pipe(struct mdss_mdp_pipe *pipe,
@@ -635,7 +629,6 @@ int mdss_mdp_wb_set_format(struct msm_fb_data_type *mfd, int dst_format);
 int mdss_mdp_wb_get_format(struct msm_fb_data_type *mfd,
 					struct mdp_mixer_cfg *mixer_cfg);
 
-int mdss_mdp_pipe_program_pixel_extn(struct mdss_mdp_pipe *pipe);
 #define mfd_to_mdp5_data(mfd) (mfd->mdp.private1)
 #define mfd_to_mdata(mfd) (((struct mdss_overlay_private *)\
 				(mfd->mdp.private1))->mdata)

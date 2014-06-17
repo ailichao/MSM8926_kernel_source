@@ -83,12 +83,6 @@ static void input_pass_event(struct input_dev *dev,
 	rcu_read_lock();
 
 	handle = rcu_dereference(dev->grab);
-
-	/* for side key debug*/
-	if (code==0x2fe || code==0x210 || code==114 || code==115 || code==116)
-		pr_info("%s():type=%d, code=%d , value=%d\n ", __func__, type, code, value);
-	/* for side key debug*/
-
 	if (handle)
 		handle->handler->event(handle, type, code, value);
 	else {
@@ -1829,7 +1823,7 @@ static void input_cleanse_bitmasks(struct input_dev *dev)
  */
 int input_register_device(struct input_dev *dev)
 {
-	static atomic_t input_no = ATOMIC_INIT(2); //add input numbet by devices name, ALS as input0, PS as input1, default from input2
+	static atomic_t input_no = ATOMIC_INIT(0);
 	struct input_handler *handler;
 	const char *path;
 	int error;
@@ -1865,17 +1859,8 @@ int input_register_device(struct input_dev *dev)
 	if (!dev->setkeycode)
 		dev->setkeycode = input_default_setkeycode;
 
-//add input numbet by devices name, ALS as input0, PS as input1, default from input2
-if(sysfs_streq(dev->name, "lightsensor-level")){
-	dev_set_name(&dev->dev, "input0");
-}
-else if(sysfs_streq(dev->name, "proximity")){
-	dev_set_name(&dev->dev, "input1");
-}
-else{
 	dev_set_name(&dev->dev, "input%ld",
 		     (unsigned long) atomic_inc_return(&input_no) - 1);
-}
 
 	error = device_add(&dev->dev);
 	if (error)

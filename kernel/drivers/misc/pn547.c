@@ -101,7 +101,7 @@ static ssize_t pn547_dev_read(struct file *filp, char __user *buf, size_t count,
 		int readingWatchdog = 0;
 #endif
 
-		
+
 		if (count > MAX_BUFFER_SIZE)
 		count = MAX_BUFFER_SIZE;
 		

@@ -197,7 +197,6 @@ struct kgsl_mem_entry {
 	struct kgsl_process_private *priv;
 	/* Initialized to 0, set to 1 when entry is marked for freeing */
 	int pending_free;
-	struct kgsl_device_private *dev_priv;
 };
 
 #ifdef CONFIG_MSM_KGSL_MMU_PAGE_FAULT
@@ -334,10 +333,10 @@ static inline int timestamp_cmp(unsigned int a, unsigned int b)
 	return ((a > b) && (a - b <= KGSL_TIMESTAMP_WINDOW)) ? 1 : -1;
 }
 
-static inline int
+static inline void
 kgsl_mem_entry_get(struct kgsl_mem_entry *entry)
 {
-	return kref_get_unless_zero(&entry->refcount);
+	kref_get(&entry->refcount);
 }
 
 static inline void

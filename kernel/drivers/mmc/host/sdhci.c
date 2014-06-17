@@ -31,13 +31,6 @@
 
 #include "sdhci.h"
 
-/**/
-#ifdef ORG_VER
-#else
-#include <mach/cci_hw_id.h>
-#endif
-/**/
-
 #define DRIVER_NAME "sdhci"
 
 #define DBG(f, x...) \
@@ -752,6 +745,12 @@ static u8 sdhci_calc_timeout(struct sdhci_host *host, struct mmc_command *cmd)
 	 */
 	if (host->quirks & SDHCI_QUIRK_BROKEN_TIMEOUT_VAL)
 		return 0xE;
+
+	/* During initialization, don't use max timeout as the clock is slow */
+	if ((host->quirks2 & SDHCI_QUIRK2_USE_RESERVED_MAX_TIMEOUT) &&
+		(host->clock > 400000)) {
+		return 0xF;
+	}
 
 	/* Unspecified timeout, assume max */
 	if (!data && !cmd->cmd_timeout_ms)
@@ -1578,7 +1577,6 @@ static void sdhci_do_set_ios(struct sdhci_host *host, struct mmc_ios *ios)
 	unsigned long flags;
 	int vdd_bit = -1;
 	u8 ctrl;
-	int ret;
 
 	mutex_lock(&host->ios_mutex);
 	if (host->flags & SDHCI_DEVICE_DEAD) {
@@ -1591,29 +1589,6 @@ static void sdhci_do_set_ios(struct sdhci_host *host, struct mmc_ios *ios)
 	if (ios->clock)
 		sdhci_set_clock(host, ios->clock);
 
-	/*
-	 * The controller clocks may be off during power-up and we may end up
-	 * enabling card clock before giving power to the card. Hence, during
-	 * MMC_POWER_UP enable the controller clock and turn-on the regulators.
-	 * The mmc_power_up would provide the necessary delay before turning on
-	 * the clocks to the card.
-	 */
-	if (ios->power_mode & MMC_POWER_UP) {
-		if (host->ops->enable_controller_clock) {
-			ret = host->ops->enable_controller_clock(host);
-			if (ret) {
-				pr_err("%s: enabling controller clock: failed: %d\n",
-				       mmc_hostname(host->mmc), ret);
-			} else {
-				vdd_bit = sdhci_set_power(host, ios->vdd);
-
-				if (host->vmmc && vdd_bit != -1)
-					mmc_regulator_set_ocr(host->mmc,
-							      host->vmmc,
-							      vdd_bit);
-			}
-		}
-	}
 	spin_lock_irqsave(&host->lock, flags);
 	if (!host->clock) {
 		spin_unlock_irqrestore(&host->lock, flags);
@@ -1622,16 +1597,14 @@ static void sdhci_do_set_ios(struct sdhci_host *host, struct mmc_ios *ios)
 	}
 	spin_unlock_irqrestore(&host->lock, flags);
 
-	if (!host->ops->enable_controller_clock && (ios->power_mode &
-						    (MMC_POWER_UP |
-						     MMC_POWER_ON))) {
+	if (ios->power_mode & (MMC_POWER_UP | MMC_POWER_ON))
 		vdd_bit = sdhci_set_power(host, ios->vdd);
 
-		if (host->vmmc && vdd_bit != -1)
-			mmc_regulator_set_ocr(host->mmc, host->vmmc, vdd_bit);
-	}
+	if (host->vmmc && vdd_bit != -1)
+		mmc_regulator_set_ocr(host->mmc, host->vmmc, vdd_bit);
 
 	spin_lock_irqsave(&host->lock, flags);
+
 	if (host->ops->platform_send_init_74_clocks)
 		host->ops->platform_send_init_74_clocks(host, ios->power_mode);
 
@@ -3203,32 +3176,7 @@ int sdhci_add_host(struct sdhci_host *host)
 	 * Set host parameters.
 	 */
 	mmc->ops = &sdhci_ops;
-
-	/**/
-	#ifdef ORG_VER
 	mmc->f_max = host->max_clk;
-	#else
-	if (0 == strncmp((const char*)mmc_hostname(mmc),"mmc1",sizeof("mmc1")))
-	{
-		int cci_hwid = CCI_HWID_INVALID;
-
-		cci_hwid = get_cci_hw_id();
-		printk(KERN_ERR "[%s] hostname[%s] cci_hwid[%d]\n",__func__,mmc_hostname(mmc),cci_hwid);
-
-		if (cci_hwid < CCI_HWID_PVT)
-		    mmc->f_max = UHS_SDR25_MAX_DTR;
-		else
-	mmc->f_max = host->max_clk;
-	}
-	else
-	{
-	    mmc->f_max = host->max_clk;
-	}
-	printk(KERN_ERR "[%s] hostname[%s] host->max_clk[%d] to mmc->f_max[%d]\n",
-		__func__,mmc_hostname(mmc),host->max_clk,mmc->f_max);
-	#endif
-	/**/
-
 	if (host->ops->get_min_clock)
 		mmc->f_min = host->ops->get_min_clock(host);
 	else if (host->version >= SDHCI_SPEC_300) {

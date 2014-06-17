@@ -746,7 +746,8 @@ static int yas_kxtj2_measure(int *out_data, int *out_raw)
 		}
 		else if(abs((abs(raw[2])- Sensitivity_def))  > ((Detection_range)+ 154))
 		{
-			printk("KXTJ2 out of SPEC Raw Data,%d,%d,%d\n",raw[0],raw[1],raw[2]);
+			//remove print log for Crash log analysis suggest by frede 20140213 
+			//printk("KXTJ2 out of SPEC Raw Data,%d,%d,%d\n",raw[0],raw[1],raw[2]);
 		}
 		//else
 		//{
